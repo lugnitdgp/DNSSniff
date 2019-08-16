@@ -4,7 +4,6 @@ from mitm import Mitm
 import sys
 import os
 import argparse
-import threading
 
 
 #Some color stuffs
@@ -25,13 +24,14 @@ run = '\033[1;97m[~]\033[1;m '
 __version__ = "0.1"
 __banner__= """%s
 
- _____   ______     _    ______                             
-(____ \ |  ___ \   | |  (____  \            _               
- _   \ \| |   | |   \ \  ____)  )_   _  ___| |_  ____  ____ 
-| |   | | |   | |    \ \|  __  (| | | |/___)  _)/ _  )/ ___)
-| |__/ /| |   | |_____) ) |__)  ) |_| |___ | |_( (/ /| |    
-|_____/ |_|   |_(______/|______/ \____(___/ \___)____)_|    
-                                                            
+ _____   ______     _      _          _  ___  ___ 
+(____ \ |  ___ \   | |    | |        (_)/ __)/ __)
+ _   \ \| |   | |   \ \    \ \  ____  _| |__| |__ 
+| |   | | |   | |    \ \    \ \|  _ \| |  __)  __)
+| |__/ /| |   | |_____) )____) ) | | | | |  | |   
+|_____/ |_|   |_(______(______/|_| |_|_|_|  |_|   
+                                                  
+
 %s"""%(yellow, end)
 
 
@@ -41,7 +41,7 @@ conf.verb = 0
 
 
 
-def DNSsniff(packet):
+def DNSsniffer(packet):
     if IP in packet:
         ip_src = packet[IP].src
         ip_dst = packet[IP].dst # most likely router gateway
@@ -76,7 +76,7 @@ def main():
         sys.exit(1)
 
     try:
-        sniff(iface=args.interface, filter="port 53", prn=DNSsniff, store=0)
+        sniff(iface=args.interface, filter="port 53", prn=DNSsniffer, store=0)
         mitm.stop()
         mitm.join()
         print(info+"Stopping the DNSBuster ...")
