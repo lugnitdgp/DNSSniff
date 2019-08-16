@@ -23,7 +23,6 @@ run = '\033[1;97m[~]\033[1;m '
 
 __version__ = "0.1"
 __banner__= """%s
-
  _____   ______     _      _          _  ___  ___ 
 (____ \ |  ___ \   | |    | |        (_)/ __)/ __)
  _   \ \| |   | |   \ \    \ \  ____  _| |__| |__ 
@@ -31,7 +30,6 @@ __banner__= """%s
 | |__/ /| |   | |_____) )____) ) | | | | |  | |   
 |_____/ |_|   |_(______(______/|_| |_|_|_|  |_|   
                                                   
-
 %s"""%(yellow, end)
 
 
@@ -88,5 +86,5 @@ def main():
 
 if __name__ == '__main__':
     print(__banner__)
-    print(green+"Starting DNSSniff "+__version__+end)
+    print(green+"Starting DNSSniff v"+__version__+end)
     main()
