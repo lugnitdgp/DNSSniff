@@ -7,7 +7,7 @@ DNSSniff in action
 
 ## How to use ?
 First,
-*Make sure IP forwarding is enabled in your system, otherwise target will lose internet connection*
+*make sure IP forwarding is enabled in your system, otherwise target will lose internet connection*
 
 #### How to check if IP forwarding is enabled or not ?
 If you are using a Debian based linux distro (i.e Ubuntu) check output of
@@ -19,4 +19,4 @@ Usually ip forwarding is not blocked by firewalls.
 Then it's simple, just  
 `sudo python3 main.py -i <interface_name> -t <target_ip> -g <gateway_ip>`
 
-for example `sudo python3 main.py -i wlo1 -t 192.168.0.101 -g 192.168.0.1`
+For example `sudo python3 main.py -i wlo1 -t 192.168.0.101 -g 192.168.0.1`
