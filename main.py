@@ -35,22 +35,18 @@ __banner__= """%s
 %s"""%(yellow, end)
 
 
-interface = "wlo1"
 conf.verb = 0
 # set with conf.iface = "wlo1"
-
 
 
 def DNSsniffer(packet):
     if IP in packet:
         ip_src = packet[IP].src
-        ip_dst = packet[IP].dst # most likely router gateway
         if packet.haslayer(DNS):
             dns_layer = packet.getlayer(DNS)
             # parse only DNS queries
-            
             if dns_layer.qr == 0:
-                print(res+"Source:",ip_src,"-->",dns_layer.qd.qname)
+                print(res+"Source:",ip_src,"--> "+str(dns_layer.qd.qname))
 
 def main():
     ap = argparse.ArgumentParser(description="DNSBuster")
@@ -76,11 +72,14 @@ def main():
         sys.exit(1)
 
     try:
-        sniff(iface=args.interface, filter="port 53", prn=DNSsniffer, store=0)
+        print(info+"Starting the sniffer on target %s"%(args.target))
+        sniff_filter = "port 53 and ip host " + args.target
+        sniff(iface=args.interface, filter=sniff_filter, prn=DNSsniffer, store=0)
         mitm.stop()
         mitm.join()
         print(info+"Stopping the DNSBuster ...")
     except KeyboardInterrupt:
+        print(info+"KeyboardInterrupt caught in main thread")
         mitm.stop()
         mitm.join()
         print(info+"Stopping the DNSBuster ...")
@@ -89,4 +88,5 @@ def main():
 
 if __name__ == '__main__':
     print(__banner__)
+    print(green+"Starting DNSSniff "+__version__+end)
     main()
